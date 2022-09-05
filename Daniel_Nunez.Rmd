@@ -1,0 +1,208 @@
+---
+title: "Laboratorio 7"
+author: "Daniel Núñez B85667"
+date: "11/8/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+```{r warning=FALSE, message=FALSE}
+
+library(curl)
+library(readxl)
+library(tidyverse)
+library(lessR)
+
+Mortalidad <- read_excel("Tabla de mortalidad.xlsx")
+
+i <- 0.08
+w <- 110
+
+qxH <- Mortalidad$`qx Hombres`
+qxM <- Mortalidad$`qx Mujeres`
+
+```
+
+
+```{r}
+
+#Funcion kpx
+
+kpx<-function(k,x,qx,w){
+  
+  if(k==0){
+    
+    return(1)
+    
+  }else{
+    
+    if((x + k) <= w){
+      
+      temp=1
+      
+      for(i in 0:(k-1)){
+        
+        temp = temp * (1 - qx[x+i+1]) 
+        
+      }
+      
+      return(temp)
+      
+    }
+    
+    else{
+      
+      return(0)
+    }
+  }
+}
+
+```
+
+```{r}
+
+# Por materia vista en clase esta  anualidad se puede ver como una anualidad normal de n años + una anualidad vitalicia diferida n años. Se utilizaran las funciones programadas el laboratorio pasado. 
+
+# Anualidad vitalicia prepagable
+
+ax<-function(x,i,qx,w){
+
+  temp<- 0
+  v<-1/(1+i)
+
+  if(x>w){
+    return(0)
+  }
+
+  else{
+
+    for(k in 0:(w-x)){
+
+      temp <- temp + v ^ k * kpx(k,x,qx,w)
+    }
+
+    return(temp)
+
+  }
+}
+
+
+# Anulidad temporal 
+
+temporal_prep <- function(x, n, i, qx, w){
+  
+  temp <- 0
+  v <- 1/(1+i)
+  
+  if (x > w){
+    return(0)
+  } else {
+    for(k in 0:(n-1)  ){
+      temp = temp + v ^ k * kpx(k,x,qx,w)
+    }
+    return(temp)
+  }
+}
+
+#Anualidad entera diferida prepagable
+
+entera_dif <- function(x,u,i,qx,w){
+  temp <- ax(x,i,qx,w) - temporal_prep(x,u,i,qx,w)
+}
+
+```
+
+
+
+
+```{r}
+
+# Anualidad garantizada
+
+n <- 5
+
+a_garantizada <- function(x,n,i,qx,w){
+  
+  temp <- 0 
+  v <- 1/(1+i)
+  d <- 1 - v
+  
+  if (x > w){
+    return(0)
+  } else {
+    temp <- (1-v^n)/d + entera_dif(x,n,i,qx,w)
+  }
+}
+
+matriz1 <- matrix(nrow = 101, ncol = 3)
+matriz1[,1] <- 0:100
+
+for (x in 0:100){
+  matriz1[x+1,2] <- a_garantizada(x,n,i,qxH,w)
+}
+
+for (x in 0:100){
+  matriz1[x+1,3] <- a_garantizada(x,n,i,qxM, w)
+}
+
+colnames(matriz1) <- c("Edad", "Hombre", "Mujer")
+view(matriz1)
+
+```
+
+
+```{r}
+
+#Anualidad vitalicia creciente
+
+a_creciente <- function(x, i, qx, w){
+  temp <- 0 
+  v <- 1/(1+i)
+  
+  if (x > w){
+    return(0)
+  } else {
+    
+    for(k in 0:(w-x)){
+      temp <- temp + (k+1) * v^k * kpx(k,x,qx,w)
+    }
+    return(temp)
+  }
+  
+}
+
+matriz2 <- matrix(nrow = 101, ncol = 3)
+matriz2[,1] <- 0:100
+
+for (x in 0:100) {
+  matriz2[x+1,2] <- a_creciente(x,i,qxH,w)
+}
+
+for (x in 0:100) {
+  matriz2[x+1,3] <- a_creciente(x,i,qxM, w)
+}
+
+colnames(matriz2) <- c("Edad", "Hombre", "Mujer")
+view(matriz2)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
